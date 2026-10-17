@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Linon - Continuous Improvement</title>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<style>
+:root{--bg:#eef3f3;--bar:#17333a;--ink:#17333a;--teal:#0d5c63;--line:#cfdcdd;--muted:#66777c;--soft:#e8f4f3;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1a1c;--bar:#0a1214}}
+:root[data-theme=dark]{--bg:#0f1a1c;--bar:#0a1214}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);font:14px/1.45 Inter,-apple-system,"Segoe UI",sans-serif;color:var(--ink);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);color:#fff;padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.top h1{font-size:16px;margin:0}
+button{border:0;border-radius:8px;padding:9px 13px;font:inherit;font-weight:700;cursor:pointer;background:#d9efed;color:#145b5c}
+button.pri{background:#57c4bd;color:#0c3436}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #57c4bd;outline-offset:1px}
+.wrap{max-width:900px;margin:18px auto 60px;padding:0 12px}
+.sheet{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:22px;margin-bottom:18px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+.sheet h2{margin:0;font-size:20px}
+.vi{color:var(--muted);font-weight:500;font-size:15px}
+.brand{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--teal)}
+.sub{color:var(--muted);font-size:12px;margin:2px 0 14px}
+.pn{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 14px}
+.f{display:flex;flex-direction:column;gap:3px}.f.w2{grid-column:span 2}.f.w3{grid-column:span 3}
+label{font-size:11px;font-weight:700;color:#42575b}
+input,select,textarea{border:1px solid var(--line);border-radius:6px;padding:8px 9px;font:inherit;width:100%;background:#fff;color:var(--ink)}
+textarea{resize:vertical;margin-bottom:12px}
+.ttl{font-size:18px;font-weight:700;padding:5px 8px;margin-top:2px}
+.pghead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border-radius:0;background:#fff;padding:6px 11px;font-size:12px}
+.seg button.on{background:var(--teal);color:#fff}
+.photos{display:grid;gap:10px;margin-bottom:10px}
+.photos.c1{grid-template-columns:1fr}.photos.c2{grid-template-columns:1fr 1fr}
+.ph{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#f2f6f6}
+.ph img{width:100%;display:block}
+.ph .x{position:absolute;top:6px;right:6px;width:26px;height:26px;padding:0;border-radius:50%;background:rgba(20,35,38,.85);color:#fff}
+.add{width:100%;border:1px dashed var(--teal);background:var(--soft)}
+.ctl{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:18px;padding-top:14px;border-top:2px solid var(--line)}
+.ctl b{font-size:18px;min-width:90px;text-align:center}
+.ctl button{width:44px;height:44px;font-size:22px;padding:0}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,100px);background:#173b3d;color:#fff;padding:10px 16px;border-radius:8px;transition:.25s;z-index:9;font-size:13px;max-width:90%}
+.toast.show{transform:translate(-50%,0)}
+@media(max-width:640px){.grid{grid-template-columns:1fr 1fr}.f.w3{grid-column:span 2}.sheet{padding:14px}}
+</style></head><body>
+<div class="top"><h1>Linon - Continuous Improvement</h1><button class="pri" id="doc">Export Word</button></div>
+<main class="wrap">
+<section class="sheet">
+<div class="brand">LINON</div>
+<h2>Continuous Improvement Report</h2>
+<p class="sub">Page 1 · General information</p>
+<div class="grid" id="info"></div>
+</section>
+<div id="pages"></div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const toast=t=>{const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('show'),2600)};
+const F=[['topic','Topic / improvement title','','w3'],['date','Date',new Date().toISOString().slice(0,10),'','date'],['item','Item no.',''],['po','PO #',''],['factory','Factory','Linon'],['by','Prepared by',''],['area','Area / process',''],['status','Status','Open','','select'],['note','Remarks','','w2']];
+const mk=(t,v,edit)=>({t,v,edit,text:'',cols:2,imgs:[]});
+const S={pages:[mk('Problem','Vấn đề'),mk('Root cause','Nguyên nhân'),mk('Improvement','Cải thiện'),mk('Follow-up / Additional','',true)]};
+$('info').innerHTML=F.map(([k,l,v,w,t])=>t=='select'?`<div class="f"><label for="${k}">${l}</label><select id="${k}"><option>Open</option><option>In progress</option><option>Closed</option></select></div>`:`<div class="f ${w}"><label for="${k}">${l}</label><input id="${k}" type="${t||'text'}" value="${esc(v)}"></div>`).join('');
+const val=k=>$(k).value.trim();
+
+function render(){
+ const N=S.pages.length;
+ $('pages').innerHTML=S.pages.map((pg,n)=>`<section class="sheet"><div class="pghead"><div><div class="pn">Page ${n+2}</div>${pg.edit?`<input class="ttl" data-t="${n}" value="${esc(pg.t)}" aria-label="Page title">`:`<h2>${pg.t} <span class="vi">· ${pg.v}</span></h2>`}</div>
+<div class="seg" role="group" aria-label="Photos per row"><button data-cols="${n},1" class="${pg.cols==1?'on':''}">1 / row</button><button data-cols="${n},2" class="${pg.cols==2?'on':''}">2 / row</button></div></div>
+<textarea data-tx="${n}" rows="5" placeholder="Description...">${esc(pg.text)}</textarea>
+<div class="photos c${pg.cols}">${pg.imgs.map((im,i)=>`<div class="ph"><img src="${im.d}" alt=""><button class="x" data-rm="${n},${i}" aria-label="Remove photo">×</button></div>`).join('')}</div>
+<button class="add" data-add="${n}">+ Add photos</button>
+${n==N-1?`<div class="ctl"><button data-pg="-" aria-label="Remove last page" ${N<=4?'disabled':''}>−</button><b>${N+1} pages</b><button data-pg="+" aria-label="Add page">+</button></div>`:''}</section>`).join('');
+}
+let pend=0,tgt=0;
+const fi=document.createElement('input');fi.type='file';fi.accept='image/*';fi.multiple=true;
+document.addEventListener('click',e=>{const d=e.target.dataset;
+ if(d.cols){const[n,c]=d.cols.split(',');S.pages[n].cols=+c;render()}
+ else if(d.rm){const[n,i]=d.rm.split(',');S.pages[n].imgs.splice(i,1);render()}
+ else if(d.add!=null){tgt=+d.add;fi.value='';fi.click()}
+ else if(d.pg=='+'){S.pages.push(mk('Additional page '+(S.pages.length+2),'',true));render();window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}
+ else if(d.pg=='-'){const L=S.pages[S.pages.length-1];if((L.text||L.imgs.length)&&!pend){pend=1;toast('This page has content. Press − again to delete it.');setTimeout(()=>pend=0,4000);return}pend=0;S.pages.pop();render()}});
+document.addEventListener('input',e=>{const d=e.target.dataset;if(d.tx!=null)S.pages[d.tx].text=e.target.value;if(d.t!=null)S.pages[d.t].t=e.target.value});
+function shrink(f){return new Promise((res,rej)=>{const rd=new FileReader();rd.onerror=rej;rd.onload=()=>{const im=new Image();im.onerror=rej;im.onload=()=>{const k=Math.min(1,1100/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);res({d:c.toDataURL('image/jpeg',.85),w:c.width,h:c.height})};im.src=rd.result};rd.readAsDataURL(f)})}
+fi.addEventListener('change',async()=>{const fs=[...fi.files];if(!fs.length)return;toast('Adding photos…');
+ for(const f of fs){try{S.pages[tgt].imgs.push(await shrink(f))}catch(e){toast('Could not read a photo')}}render()});
+
+//<DOC>
+function bytes(u){const b=atob(u.split(',')[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+function makeDoc(D,S,I){
+ const {Document,Paragraph,TextRun,ImageRun,Table,TableRow,TableCell,WidthType,BorderStyle,ShadingType,AlignmentType,Footer,PageNumber}=D;
+ const TEAL='0D5C63',INK='17333A',MUT='66777C',W=10178,FONT='Arial';
+ const none={style:BorderStyle.NONE,size:0,color:'FFFFFF'},nb={top:none,bottom:none,left:none,right:none};
+ const thin={style:BorderStyle.SINGLE,size:4,color:'CFDCDD'},tb={top:thin,bottom:thin,left:thin,right:thin};
+ const run=(t,o={})=>new TextRun({text:t,bold:o.b,size:o.s||22,color:o.c||INK,font:FONT});
+ const para=(t,o={})=>new Paragraph({spacing:{after:o.after??80},alignment:o.al,children:[run(t,o)]});
+ const head=(t,first,sub)=>[new Paragraph({pageBreakBefore:!first,spacing:{after:60},border:{bottom:{style:BorderStyle.SINGLE,size:12,color:TEAL,space:4}},children:[run(t,{b:1,s:34})]}),para(sub||'',{s:18,c:MUT,after:160})];
+ const cell=(kids,w,o={})=>new TableCell({width:{size:w,type:WidthType.DXA},columnSpan:o.span,borders:o.nob?nb:tb,shading:o.fill?{type:ShadingType.CLEAR,fill:o.fill,color:'auto'}:undefined,margins:{top:80,bottom:80,left:100,right:100},children:kids});
+ const v=k=>I[k]||'-';
+ const L=[1700,3389,1700,3389];
+ const pair=(a,b)=>new TableRow({cantSplit:true,children:[cell([para(a[0],{b:1,s:18,c:MUT,after:0})],L[0],{fill:'E8F4F3'}),cell([para(v(a[1]),{after:0})],L[1]),cell([para(b?b[0]:'',{b:1,s:18,c:MUT,after:0})],L[2],{fill:b?'E8F4F3':undefined}),cell([para(b?v(b[1]):'',{after:0})],L[3])]});
+ const full=a=>new TableRow({cantSplit:true,children:[cell([para(a[0],{b:1,s:18,c:MUT,after:0})],L[0],{fill:'E8F4F3'}),cell([para(v(a[1]),{after:0})],L[1]+L[2]+L[3],{span:3})]});
+ const info=new Table({width:{size:W,type:WidthType.DXA},columnWidths:L,rows:[full(['Topic','topic']),pair(['Date','date'],['Item no.','item']),pair(['PO #','po'],['Factory','factory']),pair(['Prepared by','by'],['Area / process','area']),pair(['Status','status'],['Remarks','note'])]});
+ const kids=[new Paragraph({spacing:{after:40},children:[run('LINON',{b:1,s:20,c:TEAL})]}),...head('Continuous Improvement Report',true,'General information'),info];
+ const pics=(imgs,cols)=>{
+  const cw=Math.floor(W/cols),mw=cw/15-14,mh=cols==1?420:290,rows=[];
+  for(let i=0;i<imgs.length;i+=cols){const cs=[];for(let j=0;j<cols;j++){const im=imgs[i+j];
+   cs.push(cell([new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:80},children:im?[(()=>{const k=Math.min(mw/im.w,mh/im.h);return new ImageRun({data:bytes(im.d),type:'jpg',transformation:{width:Math.max(1,Math.round(im.w*k)),height:Math.max(1,Math.round(im.h*k))}})})()]:[]})],cw,{nob:1}))}
+   rows.push(new TableRow({cantSplit:true,children:cs}))}
+  return imgs.length?[new Table({width:{size:cw*cols,type:WidthType.DXA},columnWidths:Array(cols).fill(cw),rows})]:[]};
+ S.pages.forEach((pg,n)=>{
+  kids.push(...head(pg.t+(pg.v?' · '+pg.v:''),false,`Page ${n+2} · ${I.item||''} ${I.topic?'· '+I.topic:''}`));
+  const lines=(pg.text||'').split('\n');
+  lines.forEach(l=>kids.push(para(l,{after:60})));
+  kids.push(new Paragraph({spacing:{after:120},children:[]}),...pics(pg.imgs,pg.cols))});
+ return new Document({creator:'Linon',title:'Continuous Improvement Report',styles:{default:{document:{run:{font:FONT,size:22}}}},
+  sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:864,bottom:864,left:864,right:864}}},
+   footers:{default:new Footer({children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({children:['Linon - Continuous Improvement  |  Page ',PageNumber.CURRENT,' / ',PageNumber.TOTAL_PAGES],size:16,color:MUT,font:FONT})]})]})},
+   children:kids}]})}
+//</DOC>
+$('doc').onclick=async()=>{
+ if(!window.docx){toast('Word library failed to load. Check internet.');return}
+ const b=$('doc');b.disabled=true;b.textContent='Preparing…';
+ try{const I={};F.forEach(f=>I[f[0]]=val(f[0]));
+  const blob=await docx.Packer.toBlob(makeDoc(docx,S,I));
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=('Linon_CI_'+(I.item||'report')+'_'+I.date).replace(/[^a-z0-9_.-]/gi,'_')+'.docx';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);toast('Word file exported')
+ }catch(e){console.error(e);toast('Export failed')}finally{b.disabled=false;b.textContent='Export Word'}};
+render();
+</script></body></html>
